@@ -1,0 +1,6 @@
+path=YOUR PATH TO RTL
+~/logLUTs/logLUTs.py --message "$(git log -1 --pretty=%s)" \
+    --commit $(git log -1 --pretty=%h) \
+    --yosys-log $path/yosys.log \
+    --nextpnr-log $path/nextpnr.log \
+     --csvfile $path/LUTs.csv
