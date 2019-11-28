@@ -19,12 +19,13 @@ parser.add_argument('--nextpnr-log', action='store', default="nextpnr.log")
 parser.add_argument('--csvfile', action='store', default="LUTs.csv")
 parser.add_argument('--message', action='store', default="no message")
 parser.add_argument('--commit', action='store', default="no commit")
+parser.add_argument('--no-store', action='store_const', const=True)
 args = parser.parse_args()
 
 if not os.path.isfile(args.yosys_log):
     sys.exit("couldn't find yosys log %s" % args.yosys_log)
 if not os.path.isfile(args.nextpnr_log):
-    sys.exit("couldn't find yosys log %s" % args.yosys_log)
+    sys.exit("couldn't find nextpnr log %s" % args.nextpnr_log)
 
 with open(args.yosys_log) as fh:
     for line in fh.readlines():
@@ -44,6 +45,9 @@ with open(args.nextpnr_log) as fh:
 print("flops %d" % flops)
 print("luts %d" % luts)
 print("max freq %2.2f MHz" % max_freq)
+
+if args.no_store:
+    exit(0)
 
 csvfile_created = False
 if os.path.isfile(args.csvfile):
