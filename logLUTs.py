@@ -6,16 +6,16 @@ import os
 import argparse
 import sys
 
-def check_logs():
+def get_latest_stats():
     if not os.path.isfile(args.yosys_log):
         sys.exit("couldn't find yosys log %s" % args.yosys_log)
     if not os.path.isfile(args.nextpnr_log):
         sys.exit("couldn't find nextpnr log %s" % args.nextpnr_log)
 
-def parse_logs():
     flops = 0
     luts = 0
     max_freq = 0
+
     with open(args.yosys_log) as fh:
         for line in fh.readlines():
             m = re.search("SB_DFF[ESR]*[ ]+(\d+)", line)
@@ -34,9 +34,16 @@ def parse_logs():
     print("flops %d" % flops)
     print("luts %d" % luts)
     print("max freq %2.2f MHz" % max_freq)
-    return flops, luts, max_freq
 
-def add_to_log(commit, flops, luts, max_freq):
+    sha = repo.commit('master').hexsha
+    short_sha = repo.git.rev_parse(sha, short=True)
+
+    return {    'commit'    : short_sha,
+                'flops'     : flops,
+                'luts'      : luts,
+                'freq'      : max_freq }
+
+def add_to_log(row):
     csvfile_created = False
     if os.path.isfile(args.csvfile):
         print("found existing csvfile %s" % args.csvfile)
@@ -50,12 +57,9 @@ def add_to_log(commit, flops, luts, max_freq):
             print("writing header")
             writer.writeheader()
 
-        writer.writerow({   'commit'    : commit.hexsha,
-                            'flops'     : flops,
-                            'luts'      : luts,
-                            'freq'      : max_freq })
+        writer.writerow(row)
 
-def load_csv():
+def load_history():
     with open(args.csvfile) as csvfile:
         fieldnames = ['commit', 'flops', 'luts', 'freq']
         reader = csv.DictReader(csvfile, fieldnames=fieldnames)
@@ -93,8 +97,6 @@ def plot(data):
     plt.gcf().autofmt_xdate()
     commit_details = fig.text(.5, .02, "hover over points to see commit info", ha='center')
     
-
-    last_index = 0
     def hover(event):
         if event.inaxes == ax2:
             for index, d in enumerate(dates):
@@ -108,6 +110,7 @@ def plot(data):
 
     fig.canvas.mpl_connect("motion_notify_event", hover)
     plt.show()
+
 
 if __name__ == '__main__':
 
@@ -126,11 +129,8 @@ if __name__ == '__main__':
         sys.exit("couldn't find git repo")
 
     if args.add_commit:
-        check_logs()
-        flops, luts, max_freq = parse_logs()
-        commit = repo.commit('master')
-        add_to_log(commit, flops, luts, max_freq)
+        add_to_log(get_latest_stats())
     elif args.plot:
-        plot(load_csv()) 
+        plot(load_history() + [get_latest_stats()]) 
     else:
         print("nothing to do")
