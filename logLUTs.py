@@ -68,36 +68,42 @@ def plot(data):
     fig, ax = plt.subplots()
 
     repo = git.Repo(args.git)
-    date =  [repo.commit(d['commit']).committed_datetime for d in data]
-    mesg =  [repo.commit(d['commit']).message for d in data]
+    dates =  [repo.commit(d['commit']).committed_datetime for d in data]
+    mesgs =  [repo.commit(d['commit']).message for d in data]
     flops = [int(d['flops'])  for d in data]
-    luts =  [int(d['luts'])   for d in data]
-    freq =  [float(d['freq']) for d in data]
+    luts  =  [int(d['luts'])   for d in data]
+    freqs =  [float(d['freq']) for d in data]
 
     ax.grid()
-    flops_line, = ax.plot(date, flops, label='flops', marker='o')
-    luts_line, = ax.plot(date, luts,  label='luts', marker='o')
+    ax.plot(dates, flops, label='flops', marker='o')
+    ax.plot(dates, luts,  label='luts', marker='o')
     ax.set_ylabel('count')
-    ax.legend()
-    ax.set_title("flops, luts and max freq vs commits")
+    ax_legend = ax.legend()
+    ax_legend.remove()
+    ax.set_title("flip-flops, LUTS and max frequency vs commits")
 
     ax2 = ax.twinx()
-    freq_line, = ax2.plot(date, freq,  label='freq', color='green', marker='o')
+    freq_line, = ax2.plot(dates, freqs,  label='freq', color='green', marker='o')
     ax2.set_ylabel('MHz')
     ax2.legend()
+    ax2.add_artist(ax_legend) # mess about to get the first ax legend on top of 2nd ax line
+
+    commit_line = plt.axvline(dates[0], linewidth=2, color="gray", linestyle="--" )
 
     plt.gcf().autofmt_xdate()
     commit_details = fig.text(.5, .02, "hover over points to see commit info", ha='center')
     
+
     last_index = 0
     def hover(event):
         if event.inaxes == ax2:
-            for index, d in enumerate(date):
+            for index, d in enumerate(dates):
                 if(matplotlib.dates.num2date(event.xdata) < d):
                     break
-            new_text = "%s: %s" % (data[index]['commit'], mesg[index])
+            new_text = "%s: %s" % (data[index]['commit'], mesgs[index])
             if commit_details.get_text() != new_text:
                 commit_details.set_text(new_text)
+                commit_line.set_xdata(dates[index])
                 fig.canvas.draw_idle()
 
     fig.canvas.mpl_connect("motion_notify_event", hover)
@@ -109,9 +115,9 @@ if __name__ == '__main__':
     parser.add_argument('--csvfile', action='store', default="LUTs.csv")
     parser.add_argument('--yosys-log', action='store', default="yosys.log")
     parser.add_argument('--nextpnr-log', action='store', default="nextpnr.log")
-    parser.add_argument('--add-commit', action='store_const', const=True, help='add latest commit to the log')
-    parser.add_argument('--git', action='store', default=".git", help='where the git repo is')
-    parser.add_argument('--plot', action='store_const', const=True)
+    parser.add_argument('--add-commit', action='store_const', const=True, help="add latest commit to the log")
+    parser.add_argument('--git', action='store', default=".git", help="where the git repo is")
+    parser.add_argument('--plot', action='store_const', const=True, help="show data in a plot")
     args = parser.parse_args()
 
     try:
@@ -124,6 +130,7 @@ if __name__ == '__main__':
         flops, luts, max_freq = parse_logs()
         commit = repo.commit('master')
         add_to_log(commit, flops, luts, max_freq)
-
-    if args.plot:
+    elif args.plot:
         plot(load_csv()) 
+    else:
+        print("nothing to do")
