@@ -73,7 +73,7 @@ def plot(data):
 
     repo = git.Repo(args.git)
     dates =  [repo.commit(d['commit']).committed_datetime for d in data]
-    mesgs =  [repo.commit(d['commit']).message for d in data]
+    mesgs =  [repo.commit(d['commit']).message.strip() for d in data]
     flops = [int(d['flops'])  for d in data]
     luts  =  [int(d['luts'])   for d in data]
     freqs =  [float(d['freq']) for d in data]
@@ -84,7 +84,7 @@ def plot(data):
     ax.set_ylabel('count')
     ax_legend = ax.legend()
     ax_legend.remove()
-    ax.set_title("flip-flops, LUTS and max frequency vs commits")
+    ax.set_title("flip-flops, LUTs and max frequency vs commits")
 
     ax2 = ax.twinx()
     freq_line, = ax2.plot(dates, freqs,  label='freq', color='green', marker='o')
@@ -99,16 +99,17 @@ def plot(data):
     
     def hover(event):
         if event.inaxes == ax2:
-            for index, d in enumerate(dates):
+            for i, d in enumerate(dates):
                 if(matplotlib.dates.num2date(event.xdata) < d):
                     break
-            new_text = "%s: %s" % (data[index]['commit'], mesgs[index])
+            new_text = "%s: %s\nflops %4d LUTs %4d freq %3d" % (data[i]['commit'], mesgs[i], flops[i], luts[i], freqs[i])
             if commit_details.get_text() != new_text:
                 commit_details.set_text(new_text)
-                commit_line.set_xdata(dates[index])
+                commit_line.set_xdata(dates[i])
                 fig.canvas.draw_idle()
 
     fig.canvas.mpl_connect("motion_notify_event", hover)
+    fig.subplots_adjust(bottom=0.25) # bit of space at the bottom for the hover text
     plt.show()
 
 
