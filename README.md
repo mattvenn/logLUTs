@@ -23,7 +23,7 @@ or in your makefile:
     logluts:
         $(LOG_LUTS) --add-commit --git ../
 
-    plotluts::
+    plotluts:
         $(LOG_LUTS) --plot --git ../
 
 ## plotting
