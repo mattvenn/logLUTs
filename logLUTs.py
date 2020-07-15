@@ -6,6 +6,19 @@ import os
 import argparse
 import sys
 
+regex = {
+    'ice40' : {
+        "flops" : "SB_DFF[ESR]*[ ]+(\d+)",
+        "luts"  : "SB_LUT4[ ]+(\d+)",
+        "freq"  : "Info: Max frequency.*?(\d+.\d+) MHz",
+        },
+    'ecp5'  : {
+        "flops" : "TRELLIS_FF[ ]+(\d+)",
+        "luts"  : "LUT4[ ]+(\d+)",
+        "freq"  : "Info: Max frequency.*?(\d+.\d+) MHz",
+        },
+    }
+
 def get_latest_stats():
     if not os.path.isfile(args.yosys_log):
         sys.exit("couldn't find yosys log %s" % args.yosys_log)
@@ -15,19 +28,20 @@ def get_latest_stats():
     flops = 0
     luts = 0
     max_freq = 0
+    print("target is %s" % args.target)
 
     with open(args.yosys_log) as fh:
         for line in fh.readlines():
-            m = re.search("SB_DFF[ESR]*[ ]+(\d+)", line)
+            m = re.search(regex[args.target]['flops'], line)
             if m is not None:
                 flops += int(m.group(1))
-            m = re.search("SB_LUT4[ ]+(\d+)", line)
+            m = re.search(regex[args.target]['luts'], line)
             if m is not None:
                 luts += int(m.group(1))
 
     with open(args.nextpnr_log) as fh:
         for line in fh.readlines():
-            m = re.search("Info: Max frequency.*?(\d+.\d+) MHz", line)
+            m = re.search(regex[args.target]['freq'], line)
             if m is not None:
                 max_freq = float(m.group(1))
 
@@ -35,7 +49,7 @@ def get_latest_stats():
     print("luts %d" % luts)
     print("max freq %2.2f MHz" % max_freq)
 
-    sha = repo.commit('master').hexsha
+    sha = repo.commit(repo.active_branch).hexsha
     short_sha = repo.git.rev_parse(sha, short=True)
 
     return {    'commit'    : short_sha,
@@ -115,6 +129,7 @@ def plot(data):
 
 if __name__ == '__main__':
 
+    targets = ['ice40', 'ecp5']
     parser = argparse.ArgumentParser(description="logLUTs - parse yosys and nextpnr logs to log FPGA resource usage")
     parser.add_argument('--csvfile', action='store', default="LUTs.csv")
     parser.add_argument('--yosys-log', action='store', default="yosys.log")
@@ -122,6 +137,7 @@ if __name__ == '__main__':
     parser.add_argument('--add-commit', action='store_const', const=True, help="add latest commit to the log")
     parser.add_argument('--git', action='store', default=".git", help="where the git repo is")
     parser.add_argument('--plot', action='store_const', const=True, help="show data in a plot")
+    parser.add_argument('--target', choices=targets, default=targets[0], help="what type FPGA")
     args = parser.parse_args()
 
     try:
