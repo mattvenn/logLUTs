@@ -49,7 +49,11 @@ def get_latest_stats():
     print("luts %d" % luts)
     print("max freq %2.2f MHz" % max_freq)
 
-    sha = repo.commit(repo.active_branch).hexsha
+    try:
+        sha = repo.commit(repo.active_branch).hexsha
+    except TypeError:
+        # Not on branch.
+        sha = repo.head.object.hexsha
     short_sha = repo.git.rev_parse(sha, short=True)
 
     return {    'commit'    : short_sha,
