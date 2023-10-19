@@ -11,11 +11,13 @@ regex = {
         "flops" : "SB_DFF[ESR]*[ ]+(\d+)",
         "luts"  : "SB_LUT4[ ]+(\d+)",
         "freq"  : "Info: Max frequency.*?(\d+.\d+) MHz",
+        "lc"    : "ICESTORM_LC:[ ]+(\d+)"
         },
     'ecp5'  : {
         "flops" : "TRELLIS_FF[ ]+(\d+)",
         "luts"  : "LUT4[ ]+(\d+)",
         "freq"  : "Info: Max frequency.*?(\d+.\d+) MHz",
+        "lc"    : ""
         },
     }
 
@@ -44,10 +46,14 @@ def get_latest_stats():
             m = re.search(regex[args.target]['freq'], line)
             if m is not None:
                 max_freq = float(m.group(1))
+            m = re.search(regex[args.target]['lc'], line)
+            if m is not None:
+                lcs = int(m.group(1))
 
     print("flops %d" % flops)
     print("luts %d" % luts)
     print("max freq %2.2f MHz" % max_freq)
+    print("lcs %d" % lcs)
 
     try:
         sha = repo.commit(repo.active_branch).hexsha
@@ -59,7 +65,8 @@ def get_latest_stats():
     return {    'commit'    : short_sha,
                 'flops'     : flops,
                 'luts'      : luts,
-                'freq'      : max_freq }
+                'freq'      : max_freq,
+                'lcs'       : lcs }
 
 def add_to_log(row):
     csvfile_created = False
@@ -68,7 +75,7 @@ def add_to_log(row):
         csvfile_created = True
         
     with open(args.csvfile, 'a+') as csvfile:
-        fieldnames = ['commit', 'flops', 'luts', 'freq']
+        fieldnames = ['commit', 'flops', 'luts', 'freq', 'lcs']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         if not csvfile_created:
@@ -79,7 +86,7 @@ def add_to_log(row):
 
 def load_history():
     with open(args.csvfile) as csvfile:
-        fieldnames = ['commit', 'flops', 'luts', 'freq']
+        fieldnames = ['commit', 'flops', 'luts', 'freq', 'lcs']
         reader = csv.DictReader(csvfile, fieldnames=fieldnames)
         return list(reader)[1:] # skip header
 
@@ -95,14 +102,16 @@ def plot(data):
     flops = [int(d['flops'])  for d in data]
     luts  =  [int(d['luts'])   for d in data]
     freqs =  [float(d['freq']) for d in data]
+    lcs =   [int(d['lcs']) if d['lcs'] else None for d in data]
 
     ax.grid()
     ax.plot(dates, flops, label='flops', marker='o')
     ax.plot(dates, luts,  label='luts', marker='o')
+    ax.plot(dates, lcs,  label='lcs', color='red', marker='o')
     ax.set_ylabel('count')
     ax_legend = ax.legend()
     ax_legend.remove()
-    ax.set_title("flip-flops, LUTs and max frequency vs commits")
+    ax.set_title("flip-flops, LUTs, max frequency, and LCs vs commits")
 
     ax2 = ax.twinx()
     freq_line, = ax2.plot(dates, freqs,  label='freq', color='green', marker='o')
@@ -120,7 +129,11 @@ def plot(data):
             for i, d in enumerate(dates):
                 if(matplotlib.dates.num2date(event.xdata) < d):
                     break
-            new_text = "%s: %s\nflops %4d LUTs %4d freq %3d" % (data[i]['commit'], mesgs[i], flops[i], luts[i], freqs[i])
+            if lcs[i]:
+                new_text = "%s: %s\nflops %4d LUTs %4d freq %3d lcs %4d" % (data[i]['commit'], mesgs[i], flops[i], luts[i], freqs[i], lcs[i])
+            else:
+                new_text = "%s: %s\nflops %4d LUTs %4d freq %3d lcs unknown" % (data[i]['commit'], mesgs[i], flops[i], luts[i], freqs[i])
+
             if commit_details.get_text() != new_text:
                 commit_details.set_text(new_text)
                 commit_line.set_xdata(dates[i])
