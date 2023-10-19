@@ -4,9 +4,23 @@ store and plot LUT, flip-flop and max frequency stats.
 
 ## setup
 
-install requirements.txt:
+    pip3 install .
 
-    pip3 install -f requirements.txt
+Editable install:
+
+    pip3 install -e .
+
+Install with plotting support:
+
+    pip3 install [-e] .[plot]
+
+If using as part of a PDM project (without plotting):
+
+    pdm add git+https://github.com/mattvenn/logLUTs.git
+
+If using as part of a PDM project (with plotting):
+
+    pdm add git+https://github.com/mattvenn/logLUTs.git[plot]
 
 ## usage
 

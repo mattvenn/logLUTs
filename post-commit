@@ -1,5 +1,5 @@
 path=YOUR PATH TO RTL
-~/logLUTs/logLUTs.py --add-commit \
+python3 -m logluts --add-commit \
     --yosys-log $path/yosys.log \
     --nextpnr-log $path/nextpnr.log \
     --csvfile $path/LUTs.csv \

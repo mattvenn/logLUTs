@@ -1,2 +1,0 @@
-matplotlib # optional, if you want graphs
-gitpython
