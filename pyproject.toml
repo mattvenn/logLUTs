@@ -1,0 +1,24 @@
+[project]
+name = "logLUTs"
+version = "0.1.0"
+description = "Log FPGA resource usage to CSV file"
+authors = [
+    {name = "Matthew Venn", email = "matt@mattvenn.net"},
+    {name = "William D. Jones", email = "thor0505@comcast.net"}
+]
+dependencies = [
+    "gitpython",
+]
+requires-python = ">=3.8"
+readme = "README.md"
+license = {text = "Apache"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project.optional-dependencies]
+plot = [
+    "matplotlib >= 3.7.0",
+]
+all = ["logLUTs[plot]"]
